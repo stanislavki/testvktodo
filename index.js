@@ -7,7 +7,7 @@ vkBridge.send("VKWebAppInit", {})
     console.error("Ошибка инициализации моста:", error);
   });
 
-const API_URL = 'https://document-stained-dexterity.ngrok-free.dev';
+const API_URL = 'https://todo-stasnau.amvera.io';
 
     // Хелпер для безопасного чтения данных (учитывает пробелы в ключах бэкенда если есть)
     function getField(obj, key) {
