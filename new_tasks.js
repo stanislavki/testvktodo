@@ -1,4 +1,4 @@
-const API_URL = 'https://document-stained-dexterity.ngrok-free.dev';
+const API_URL = 'https://todo-stasnau.amvera.io';
 
         document.addEventListener('DOMContentLoaded', async () => {
             const userId = localStorage.getItem('user_id');
