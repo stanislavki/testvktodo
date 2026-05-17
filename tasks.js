@@ -1,4 +1,4 @@
- const API_URL = 'https://document-stained-dexterity.ngrok-free.dev';
+ const API_URL = 'https://todo-stasnau.amvera.io';
         let allTasks = [];
         let currentUserId = null;
         let currentTab = 'my';
