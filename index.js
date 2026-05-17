@@ -1,4 +1,4 @@
-// Инициализация
+// Инициализация VK Bridge
 vkBridge.send("VKWebAppInit", {})
   .then(data => {
     console.log("VK Bridge инициализирован!", data);
@@ -7,14 +7,19 @@ vkBridge.send("VKWebAppInit", {})
     console.error("Ошибка инициализации моста:", error);
   });
 
-const API_URL = 'https://todo-stasnau.amvera.io';
+// Используем window, чтобы избежать ошибки "Identifier 'API_URL' has already been declared"
+window.API_URL = 'https://todo-stasnau.amvera.io';
 
-    // Хелпер для безопасного чтения данных (учитывает пробелы в ключах бэкенда если есть)
-    function getField(obj, key) {
-        return obj[key] || obj[key + ' '] || obj[' ' + key];
-    }
+// Хелпер для безопасного чтения данных (учитывает пробелы в ключах бэкенда, если они есть)
+function getField(obj, key) {
+    return obj[key] || obj[key + ' '] || obj[' ' + key];
+}
 
-    document.getElementById('dev-form').addEventListener('submit', async (e) => {
+// Безопасно находим форму на странице
+const devForm = document.getElementById('dev-form');
+
+if (devForm) {
+    devForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         const vkIdInput = document.getElementById('dev-vk-id');
@@ -38,11 +43,12 @@ const API_URL = 'https://todo-stasnau.amvera.io';
         btn.textContent = 'Проверка...';
 
         try {
-            const passRes = await fetch(`${API_URL}/check-password`, {
+            // Запрос проверки пароля с использованием глобального URL
+            const passRes = await fetch(`${window.API_URL}/check-password`, {
                 method: 'POST',
                 headers: {
                     "Content-Type": "application/json",
-                    "ngrok-skip-browser-warning": "true"  // ВОТ ЭТО ДОБАВЬ
+                    "ngrok-skip-browser-warning": "true"
                 },
                 body: JSON.stringify({ password })
             });
@@ -66,7 +72,8 @@ const API_URL = 'https://todo-stasnau.amvera.io';
         btn.textContent = 'Регистрация...';
 
         try {
-            const res = await fetch(`${API_URL}/user/register?vk_id=${vkId}&name=${encodeURIComponent(name)}`, { 
+            // Регистрация пользователя
+            const res = await fetch(`${window.API_URL}/user/register?vk_id=${vkId}&name=${encodeURIComponent(name)}`, { 
                 method: 'POST' 
             });
             const data = await res.json();
@@ -85,19 +92,19 @@ const API_URL = 'https://todo-stasnau.amvera.io';
                 localStorage.setItem('vk_id', userVk);
                 localStorage.setItem('user_name', userName);
                 
-                // 🔹 НОВОЕ: Проверяем, есть ли уже семья
+                // Проверяем, есть ли уже семья
                 try {
-                    const famRes = await fetch(`${API_URL}/user/load_user_family?vk_id=${userVk}`);
+                    const famRes = await fetch(`${window.API_URL}/user/load_user_family?vk_id=${userVk}`);
                     const famData = await famRes.json();
                     const famStatus = getField(famData, 'status')?.trim();
 
                     if (famStatus === 'family_found') {
-                        //  Уже в семье -> сохраняем family_id и идём сразу в задачи
+                        // Уже в семье -> сохраняем family_id и идём сразу в задачи
                         const familyId = getField(famData, 'family_id');
                         localStorage.setItem('family_id', familyId);
                         window.location.href = 'tasks.html';
                     } else {
-                        // Семьи нет -> идём на choose.html (как было)
+                        // Семьи нет -> идём на choose.html
                         window.location.href = 'choose.html';
                     }
                 } catch (famErr) {
@@ -117,3 +124,6 @@ const API_URL = 'https://todo-stasnau.amvera.io';
             btn.textContent = 'Зарегистрировать и войти';
         }
     });
+} else {
+    console.log("Форма #dev-form не найдена на текущей странице, инициализация события пропущена.");
+}
