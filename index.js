@@ -8,7 +8,7 @@ vkBridge.send("VKWebAppInit", {})
   });
 
 // Используем window, чтобы избежать ошибки "Identifier 'API_URL' has already been declared"
-window.API_URL = 'https://todo-stasnau.amvera.io/'; 
+window.API_URL = 'https://todo-stasnau.amvera.io'; 
 // Хелпер для безопасного чтения данных (учитывает пробелы в ключах бэкенда, если они есть)
 function getField(obj, key) {
     return obj[key] || obj[key + ' '] || obj[' ' + key];
