@@ -3,7 +3,7 @@
 console.log("Файл profile.js загружен!");
 
 // Определяем API_URL для profile.js
-const API_URL = window.API_URL || 'https://document-stained-dexterity.ngrok-free.dev';
+const API_URL = window.API_URL || 'https://todo-stasnau.amvera.io/';
 
 
 // Перевод роли на русский + иконка
