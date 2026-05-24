@@ -13,7 +13,53 @@ const API_URL = 'https://todo-stasnau.amvera.io';
     function getField(obj, key) {
         return obj[key] || obj[key + ' '] || obj[' ' + key];
     }
+// === Авторизация через ВК ===
+const vkMainBtn = document.querySelector('.vk-btn') || document.querySelector('.vk-login-btn');
 
+if (vkMainBtn) {
+    vkMainBtn.addEventListener('click', async () => {
+        try {
+            // 1. Получаем данные пользователя из ВК
+            const vkData = await vkBridge.send('VKWebAppGetUserInfo');
+            console.log('Данные от ВК:', vkData);
+
+            // 2. Отправляем данные на бэкенд (уточни эндпоинт у бэкендера, если он отличается)
+            const response = await fetch(`${API_URL}/check-password`, { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    vk_id: vkData.id,
+                    first_name: vkData.first_name,
+                    last_name: vkData.last_name,
+                    photo: vkData.photo_200,
+                    launch_params: window.location.search // Передаем параметры для проверки подписи vk_sign
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                localStorage.setItem('user_id', result.user_id);
+                localStorage.setItem('role', result.role || 'Ребёнок');
+                
+                if (result.invite_code) {
+                    localStorage.setItem('invite_code', result.invite_code);
+                    window.location.href = 'main.html'; // На главную доску задач
+                } else {
+                    window.location.href = 'create.html'; // На создание семьи, если её нет
+                }
+            } else {
+                alert('Ошибка: ' + (result.message || 'Сервер отклонил вход'));
+            }
+
+        } catch (error) {
+            console.error('Ошибка VK Bridge:', error);
+            alert('Вход через ВК был отменен или произошел сбой.');
+        }
+    });
+}
     document.getElementById('dev-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         
