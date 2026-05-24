@@ -1,4 +1,4 @@
-const API_URL = 'hhttps://todo-stasnau.amvera.io/';
+const API_URL = 'hhttps://todo-stasnau.amvera.io';
 
         document.addEventListener('DOMContentLoaded', () => {
             const userId = localStorage.getItem('user_id');
