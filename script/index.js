@@ -38,7 +38,7 @@ const API_URL = 'https://todo-stasnau.amvera.io';
         btn.textContent = 'Проверка...';
 
         try {
-            const passRes = await fetch(`${API_URL}/check-password`, {
+            const passRes = await fetch(`${API_URL}check-password`, {
                 method: 'POST',
                 headers: {
                     "Content-Type": "application/json",
