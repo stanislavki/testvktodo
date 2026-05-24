@@ -1,4 +1,4 @@
-const API_URL = 'https://document-stained-dexterity.ngrok-free.dev';
+const API_URL = 'https://todo-stasnau.amvera.io/';
         const statusMsg = document.getElementById('status-msg');
         const btnCreate = document.getElementById('btn-create');
         const btnJoin = document.getElementById('btn-join');
