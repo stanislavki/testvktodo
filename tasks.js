@@ -1,4 +1,4 @@
- const API_URL = 'https://todo-stasnau.amvera.io';
+ const API_URL = 'https://todo-stasnau.amvera.io/';
         let allTasks = [];
         let currentUserId = null;
         let currentTab = 'my';
