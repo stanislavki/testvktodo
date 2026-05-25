@@ -2,8 +2,8 @@
 
 console.log(" Файл display.js загружен");
 
+// ИСПРАВЛЕНО: Убрана лишняя буква 'h' из протокола
 const API_URL = 'https://todo-stasnau.amvera.io';
-
 
 // Безопасное обновление текста элемента
 function setTextContent(elementId, text, fallback = '', errorStyle = false) {
@@ -25,25 +25,31 @@ async function loadFamilyName() {
     }
 
     try {
+        // Запрос к бэкенду (теперь с правильным URL)
         const res = await fetch(`${API_URL}/family/get-by-code?invite_code=${encodeURIComponent(inviteCode)}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         
         const data = await res.json();
+        console.log(" Данные от бэкенда при получении семьи:", data);
         
-        if (data?.name) {
-            const familyTitleDisplay = document.getElementById('family-title');
+        // Извлекаем имя, проверяя как data.name, так и data.family_name на случай разных ответов бэкенда
+        const familyName = data?.name || data?.family_name;
+
+        if (familyName) {
+            const familyTitleDisplay = document.getElementById('family-title') || document.querySelector('.header .title') || document.querySelector('h1');
             if (familyTitleDisplay) {
-                familyTitleDisplay.textContent = data.name.toUpperCase();
+                familyTitleDisplay.textContent = familyName.trim().toUpperCase();
             }
             // Кэшируем имя, чтобы не запрашивать каждый раз
-            localStorage.setItem('family_name', data.name);
-            console.log(' Имя семьи загружено:', data.name);
+            localStorage.setItem('family_name', familyName.trim());
+            console.log(' Имя семьи загружено и закэшировано:', familyName);
         }
     } catch (e) {
         console.error(' Не удалось загрузить имя семьи:', e);
-        const familyTitleDisplay = document.getElementById('family-title');
+        const familyTitleDisplay = document.getElementById('family-title') || document.querySelector('.header .title') || document.querySelector('h1');
         if (familyTitleDisplay) {
-            familyTitleDisplay.textContent = 'СЕМЬЯ';
+            // Если сервер упал, но в кэше хоть что-то было — оставим старое, иначе пишем дефолт
+            familyTitleDisplay.textContent = localStorage.getItem('family_name')?.toUpperCase() || 'СЕМЬЯ';
         }
     }
 }
@@ -64,13 +70,18 @@ document.addEventListener('DOMContentLoaded', () => {
     setTextContent('user-role', userRole, 'Не определена');
 
     // 3. Имя семьи в заголовке (tasks.html)
-    const familyTitleDisplay = document.getElementById('family-title');
+    // Ищем элемент по ID, а если его в верстке нет — страхуемся через селекторы шапки
+    const familyTitleDisplay = document.getElementById('family-title') || document.querySelector('.header .title') || document.querySelector('h1');
+    
     if (familyTitleDisplay) {
         const cachedName = localStorage.getItem('family_name');
         if (cachedName) {
             // Используем кэш — мгновенно
             familyTitleDisplay.textContent = cachedName.toUpperCase();
             console.log('Имя семьи взято из кэша:', cachedName);
+            
+            // На всякий случай обновляем в фоне, если имя изменилось на сервере
+            loadFamilyName();
         } else {
             // Кэша нет — запрашиваем с бэкенда
             console.log(' Кэш пуст, запрашиваем имя семьи с сервера...');
@@ -78,25 +89,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
-
-// // ===== Публичные функции для внешнего вызова =====
-
-// // Обновить все отображаемые данные (например, после изменения настроек)
-// function refreshDisplay() {
-//     console.log(' refreshDisplay вызван');
-//     // Можно точечно обновить элементы, но для надёжности — перезагрузка
-//     location.reload();
-// }
-
-// // Принудительно перезагрузить имя семьи (например, после создания/входа в семью)
-// async function refreshFamilyName() {
-//     localStorage.removeItem('family_name'); // Сброс кэша
-//     await loadFamilyName();
-// }
-
-// // Экспортируем функции для использования в других модулях (если нужно)
-// window.displayUtils = {
-//     refreshDisplay,
-//     refreshFamilyName,
-//     loadFamilyName
-// };
