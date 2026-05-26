@@ -1,66 +1,103 @@
-// Инициализация
-vkBridge.send("VKWebAppInit", {})
-  .then(data => {
-    console.log("VK Bridge инициализирован!", data);
-  })
-  .catch(error => {
-    console.error("Ошибка инициализации моста:", error);
-  });
+// 1. Инициализация VK Bridge (срабатывает сразу при запуске внутри VK)
+if (typeof vkBridge !== 'undefined') {
+    vkBridge.send("VKWebAppInit", {})
+        .then(data => {
+            console.log("🍏 VK Bridge успешно инициализирован!", data);
+        })
+        .catch(error => {
+            console.error("❌ Ошибка инициализации VK Bridge:", error);
+        });
+} else {
+    console.warn("⚠️ VK Bridge не найден. Если вы тестируете в обычном браузере, это нормально.");
+}
 
 const API_URL = 'https://todo-stasnau.amvera.io';
 
-    // Хелпер для безопасного чтения данных (учитывает пробелы в ключах бэкенда если есть)
-    function getField(obj, key) {
-        return obj[key] || obj[key + ' '] || obj[' ' + key];
-    }
-// === Авторизация через ВК ===
-const vkMainBtn = document.querySelector('.vk-btn') || document.querySelector('.vk-login-btn');
+// Хелпер для безопасного чтения данных от бэкенда (на случай пробелов в ключах)
+function getField(obj, key) {
+    if (!obj) return null;
+    return obj[key] || obj[key + ' '] || obj[' ' + key];
+}
 
-if (vkMainBtn) {
-    vkMainBtn.addEventListener('click', async () => {
+// ==========================================
+// Логика: Вход через ВКонтакте
+// ==========================================
+const vkBtn = document.querySelector('.vk-btn') || document.querySelector('.vk-login-btn') || document.getElementById('vk-login');
+
+if (vkBtn) {
+    console.log("Кнопка ВК найдена, вешаем событие клика.");
+    vkBtn.addEventListener('click', async () => {
         try {
-            // 1. Получаем данные пользователя из ВК
+            // Запрашиваем данные пользователя у ВК
             const vkData = await vkBridge.send('VKWebAppGetUserInfo');
-            console.log('Данные от ВК:', vkData);
+            console.log('Данные получены от VK API:', vkData);
 
-            // 2. Отправляем данные на бэкенд (уточни эндпоинт у бэкендера, если он отличается)
-            const response = await fetch(`${API_URL}/check-password`, { 
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    vk_id: vkData.id,
-                    first_name: vkData.first_name,
-                    last_name: vkData.last_name,
-                    photo: vkData.photo_200,
-                    launch_params: window.location.search // Передаем параметры для проверки подписи vk_sign
-                })
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                localStorage.setItem('user_id', result.user_id);
-                localStorage.setItem('role', result.role || 'Ребёнок');
+            // 1. Регистрируем / авторизуем пользователя на бэкенде Amvera
+            const registerUrl = `${API_URL}/user/register?vk_id=${vkData.id}&name=${encodeURIComponent(vkData.first_name)}`;
+            const res = await fetch(registerUrl, { method: 'POST' });
+            
+            if (!res.ok) throw new Error(`Ошибка сервера при регистрации: ${res.status}`);
+            const data = await res.json();
+            
+            const status = getField(data, 'status')?.trim();
+            console.log('Статус регистрации:', status);
+            
+            if (status === 'already_exist' || status === 'user_created') {
+                // Сохраняем личные данные пользователя
+                localStorage.setItem('user_id', getField(data, 'id'));
+                localStorage.setItem('vk_id', getField(data, 'vk_id') || vkData.id);
+                localStorage.setItem('user_name', getField(data, 'name') || vkData.first_name);
                 
-                if (result.invite_code) {
-                    localStorage.setItem('invite_code', result.invite_code);
-                    window.location.href = 'main.html'; // На главную доску задач
-                } else {
-                    window.location.href = 'create.html'; // На создание семьи, если её нет
+                // 2. Проверяем, состоит ли пользователь в семье
+                console.log('Проверяем семью для vk_id:', vkData.id);
+                try {
+                    const famRes = await fetch(`${API_URL}/user/load_user_family?vk_id=${vkData.id}`);
+                    if (!famRes.ok) throw new Error(`Ошибка сети при поиске семьи`);
+                    
+                    const famData = await famRes.json();
+                    console.log('Ответ бэкенда по семье:', famData);
+                    
+                    const famStatus = getField(famData, 'status')?.trim();
+
+                    if (famStatus === 'family_found') {
+                        // Сохраняем ID семьи
+                        localStorage.setItem('family_id', getField(famData, 'family_id'));
+                        
+                        // КРИТИЧЕСКИ ВАЖНО: Вытаскиваем и сохраняем инвайт-код
+                        const code = famData.invite_code || famData.code || getField(famData, 'invite_code') || famData.invite_key;
+                        if (code) {
+                            localStorage.setItem('invite_code', String(code).trim());
+                            console.log('Инвайт-код сохранен:', code);
+                        }
+
+                        // Успешно вошли — редирект на задачи
+                        window.location.href = 'tasks.html';
+                    } else {
+                        // Семья не найдена — отправляем на выбор (создать/вступить)
+                        window.location.href = 'choose.html';
+                    }
+                } catch (famErr) {
+                    console.error('Ошибка проверки семьи, отправляем на choose.html:', famErr);
+                    window.location.href = 'choose.html';
                 }
             } else {
-                alert('Ошибка: ' + (result.message || 'Сервер отклонил вход'));
+                alert('Ошибка авторизации: ' + status);
             }
-
         } catch (error) {
-            console.error('Ошибка VK Bridge:', error);
-            alert('Вход через ВК был отменен или произошел сбой.');
+            console.error('Критическая ошибка VK Login:', error);
+            alert('Не удалось войти через ВК. Проверьте консоль.');
         }
     });
 }
-    document.getElementById('dev-form').addEventListener('submit', async (e) => {
+
+// ==========================================
+// Логика: Ручной вход (Dev Mode)
+// ==========================================
+const devForm = document.getElementById('dev-form');
+
+if (devForm) {
+    console.log("Форма Dev Mode найдена, инициализируем.");
+    devForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         const vkIdInput = document.getElementById('dev-vk-id');
@@ -69,97 +106,76 @@ if (vkMainBtn) {
         const errorDiv = document.getElementById('dev-error');
         const btn = document.getElementById('dev-login-btn');
         
-        const vkId = vkIdInput.value.trim();
-        const name = nameInput.value.trim();
-        const password = passwordInput.value.trim();
+        const vkId = vkIdInput?.value.trim();
+        const name = nameInput?.value.trim();
+        const password = passwordInput?.value.trim();
 
-        errorDiv.textContent = '';
+        if (errorDiv) errorDiv.textContent = '';
 
         if (!vkId || !name) {
-            errorDiv.textContent = 'Заполните VK ID и имя!';
+            if (errorDiv) errorDiv.textContent = 'Заполните VK ID и имя!';
             return;
         }
 
-        btn.disabled = true;
-        btn.textContent = 'Проверка...';
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Проверка...';
+        }
 
         try {
-            const passRes = await fetch('https://todo-stasnau.amvera.io/check-password', {
+            // Проверка пароля разработчика
+            const passRes = await fetch(`${API_URL}/check-password`, {
                 method: 'POST',
-                headers: {
-                    "Content-Type": "application/json",
-                    "ngrok-skip-browser-warning": "true"  // ВОТ ЭТО ДОБАВЬ
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ password })
             });
             const passData = await passRes.json();
             
             if (!passData.valid) {
-                errorDiv.textContent = 'Неправильный пароль';
-                btn.disabled = false;
-                btn.textContent = 'Зарегистрировать и войти';
+                if (errorDiv) errorDiv.textContent = 'Неправильный пароль';
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = 'Зарегистрировать и войти';
+                }
                 return;
             }
-        } catch (e) {
-            errorDiv.textContent = 'Нет связи с сервером!';
-            console.error(e);
-            btn.disabled = false;
-            btn.textContent = 'Зарегистрировать и войти';
-            return;
-        }
 
-        btn.disabled = true;
-        btn.textContent = 'Регистрация...';
-
-        try {
-            const res = await fetch(`${API_URL}/user/register?vk_id=${vkId}&name=${encodeURIComponent(name)}`, { 
-                method: 'POST' 
-            });
+            // Регистрация dev-пользователя
+            const res = await fetch(`${API_URL}/user/register?vk_id=${vkId}&name=${encodeURIComponent(name)}`, { method: 'POST' });
             const data = await res.json();
-
-            // Читаем статус
             const status = getField(data, 'status')?.trim();
             
             if (status === 'already_exist' || status === 'user_created') {
-                // Читаем данные
-                const userId = getField(data, 'id');
-                const userVk = getField(data, 'vk_id');
-                const userName = getField(data, 'name');
-
-                // Сохраняем в LocalStorage
-                localStorage.setItem('user_id', userId);
-                localStorage.setItem('vk_id', userVk);
-                localStorage.setItem('user_name', userName);
+                localStorage.setItem('user_id', getField(data, 'id'));
+                localStorage.setItem('vk_id', getField(data, 'vk_id'));
+                localStorage.setItem('user_name', getField(data, 'name'));
                 
-                // 🔹 НОВОЕ: Проверяем, есть ли уже семья
-                try {
-                    const famRes = await fetch(`${API_URL}/user/load_user_family?vk_id=${userVk}`);
-                    const famData = await famRes.json();
-                    const famStatus = getField(famData, 'status')?.trim();
+                // Проверка семьи для dev-пользователя
+                const famRes = await fetch(`${API_URL}/user/load_user_family?vk_id=${vkId}`);
+                const famData = await famRes.json();
+                const famStatus = getField(famData, 'status')?.trim();
 
-                    if (famStatus === 'family_found') {
-                        //  Уже в семье -> сохраняем family_id и идём сразу в задачи
-                        const familyId = getField(famData, 'family_id');
-                        localStorage.setItem('family_id', familyId);
-                        window.location.href = 'tasks.html';
-                    } else {
-                        // Семьи нет -> идём на choose.html (как было)
-                        window.location.href = 'choose.html';
+                if (famStatus === 'family_found') {
+                    localStorage.setItem('family_id', getField(famData, 'family_id'));
+                    const code = famData.invite_code || famData.code || getField(famData, 'invite_code');
+                    if (code) {
+                        localStorage.setItem('invite_code', String(code).trim());
                     }
-                } catch (famErr) {
-                    // Если проверка семьи упала — всё равно идём на choose.html
-                    console.warn('Не удалось проверить семью, переход на choose.html', famErr);
+                    window.location.href = 'tasks.html';
+                } else {
                     window.location.href = 'choose.html';
                 }
-                
             } else {
-                errorDiv.textContent = 'Ошибка: ' + status;
+                if (errorDiv) errorDiv.textContent = 'Ошибка бэкенда: ' + status;
             }
-        } catch (e) {
-            errorDiv.textContent = 'Нет связи с сервером!';
-            console.error(e);
+        } catch (err) {
+            console.error(err);
+            if (errorDiv) errorDiv.textContent = 'Нет связи с сервером!';
         } finally {
-            btn.disabled = false;
-            btn.textContent = 'Зарегистрировать и войти';
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Зарегистрировать и войти';
+            }
         }
     });
+}
