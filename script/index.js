@@ -15,7 +15,6 @@ function getField(obj, key) {
 }
 
 // === Авторизация через ВК ===
-// ИСПРАВЛЕНО: Теперь точно находим кнопку по ID "vk-login" или классу "vk-button"
 const vkMainBtn = document.getElementById('vk-login') || document.querySelector('.vk-button');
 
 if (vkMainBtn) {
@@ -28,7 +27,7 @@ if (vkMainBtn) {
             const vkData = await vkBridge.send('VKWebAppGetUserInfo');
             console.log('Данные от ВК получены успешно:', vkData);
 
-            // 2. Отправляем данные на бэкенд
+            // 2. Проверяем параметры / подпись (если требуется вашим бэкендом)
             console.log('Отправляем запрос на бэкенд:', `${API_URL}/check-password`);
             const response = await fetch(`${API_URL}/check-password`, { 
                 method: 'POST',
@@ -40,28 +39,54 @@ if (vkMainBtn) {
                     first_name: vkData.first_name,
                     last_name: vkData.last_name,
                     photo: vkData.photo_200,
-                    launch_params: window.location.search // Параметры для проверки подписи vk_sign
+                    launch_params: window.location.search 
                 })
             });
 
-            const result = await response.json();
-            console.log('Ответ от бэкенда check-password:', result);
+            // 3. ДОБАВЛЕНО/ИСПРАВЛЕНО: Регистрируем пользователя в БД (как в Dev Mode!)
+            console.log('Регистрируем пользователя на бэкенде...');
+            const fullName = `${vkData.first_name} ${vkData.last_name}`.trim();
+            const regRes = await fetch(`${API_URL}/user/register?vk_id=${vkData.id}&name=${encodeURIComponent(fullName)}`, { 
+                method: 'POST' 
+            });
+            const regData = await regRes.json();
+            console.log('Ответ от бэкенда user/register:', regData);
 
-            if (response.ok) {
-                localStorage.setItem('user_id', result.user_id);
-                localStorage.setItem('role', result.role || 'Ребёнок');
+            const status = getField(regData, 'status')?.trim();
+            
+            if (status === 'already_exist' || status === 'user_created') {
+                const userId = getField(regData, 'id');
+                const userVk = getField(regData, 'vk_id');
+                const userName = getField(regData, 'name');
+
+                // Сохраняем ВСЕ варианты ID в localStorage, чтобы на странице создания семьи (create.js) ничего не потерялось
+                localStorage.setItem('user_id', userId);
+                localStorage.setItem('vk_user_id', userVk); // На всякий случай для create.js
+                localStorage.setItem('vk_id', userVk);
+                localStorage.setItem('user_name', userName);
                 
-                // ИСПРАВЛЕНО: синхронизировали адреса страниц с Dev Mode (tasks.html и choose.html)
-                if (result.invite_code) {
-                    localStorage.setItem('invite_code', result.invite_code);
-                    console.log('Семья найдена. Перенаправление на tasks.html');
-                    window.location.href = 'tasks.html'; // На главную доску задач
-                } else {
-                    console.log('Семья не найдена. Перенаправление на choose.html');
-                    window.location.href = 'choose.html'; // На экран выбора/создания семьи
+                // 4. Проверяем, состоит ли пользователь в семье
+                try {
+                    const famRes = await fetch(`${API_URL}/user/load_user_family?vk_id=${userVk}`);
+                    const famData = await famRes.json();
+                    const famStatus = getField(famData, 'status')?.trim();
+
+                    if (famStatus === 'family_found') {
+                        const familyId = getField(famData, 'family_id');
+                        localStorage.setItem('family_id', familyId);
+                        console.log('Семья найдена. Перенаправление на tasks.html');
+                        window.location.href = 'tasks.html';
+                    } else {
+                        console.log('Семья не найдена. Перенаправление на choose.html');
+                        window.location.href = 'choose.html';
+                    }
+                } catch (famErr) {
+                    console.warn('Не удалось проверить семью, переход на choose.html', famErr);
+                    window.location.href = 'choose.html';
                 }
+                
             } else {
-                alert('Ошибка: ' + (result.message || 'Сервер отклонил вход'));
+                alert('Ошибка регистрации пользователя в базе: ' + status);
             }
 
         } catch (error) {
@@ -141,6 +166,7 @@ if (devForm) {
                 const userName = getField(data, 'name');
 
                 localStorage.setItem('user_id', userId);
+                localStorage.setItem('vk_user_id', userVk);
                 localStorage.setItem('vk_id', userVk);
                 localStorage.setItem('user_name', userName);
                 
