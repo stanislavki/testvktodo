@@ -1,21 +1,25 @@
 const API_URL = 'https://todo-stasnau.amvera.io';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Достаем ID и сразу проверяем на все возможные кривые значения (строки 'undefined' или 'null')
-    let userId = localStorage.getItem('user_id');
-    
-    // Резервный вариант: если чистого user_id нет, пробуем взять vk_id
-    if (!userId || userId === 'undefined' || userId === 'null') {
-        userId = localStorage.getItem('vk_id') || localStorage.getItem('vk_user_id');
+    // 1. Пытаемся достать ID всеми возможными способами
+    let userId = localStorage.getItem('vk_id') || 
+                 localStorage.getItem('vk_user_id') || 
+                 localStorage.getItem('user_id');
+
+    // 2. Если в URL есть параметры от ВК, берем оттуда (самый надежный способ)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('vk_user_id')) {
+        userId = urlParams.get('vk_user_id');
+        localStorage.setItem('vk_id', userId); // Записываем в память для надежности
     }
-    
-    // Если вообще ничего живого не нашли — отправляем на авторизацию
-        else if (!userId || userId === 'undefined' || userId === 'null') {
-        console.error('Критическая ошибка: ID пользователя не найден в localStorage или равен undefined.');
-        alert('Сессия устарела или не зафиксирована. Пожалуйста, войдите снова на главной странице.');
+
+    // 3. ПРАВИЛЬНАЯ ПРОВЕРКА (Отдельный if!)
+    if (!userId || userId === 'undefined' || userId === 'null') {
+        console.error('Критическая ошибка: ID пользователя не найден!');
+        alert('Сессия устарела или данные не передались. Возвращаем на главную.');
         window.location.href = 'index.html';
-        return;
-        }
+        return; // Жёстко останавливаем выполнение скрипта
+    }
     
     console.log('Страница создания семьи готова. Используем user_id:', userId);
 
@@ -53,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             console.log('Ответ сервера на создание семьи:', data);
 
-            // Проверяем статус (приводим к нижнему регистру на случай сюрпризов от бэкенда)
             const status = data.status?.toLowerCase().trim();
 
             if (status === 'family created' || data.family_id) {
