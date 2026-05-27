@@ -16,8 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = 'index.html';
         return;
         }
-    }
-
+    
     console.log('Страница создания семьи готова. Используем user_id:', userId);
 
     // Ищем кнопку создания семьи
