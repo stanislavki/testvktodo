@@ -16,8 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Сессия устарела или не зафиксирована. Пожалуйста, войдите снова на главной странице.');
         window.location.href = 'index.html';
         return;
-                }
         }
+    }
 
     console.log('Страница создания семьи готова. Используем user_id:', userId);
 
