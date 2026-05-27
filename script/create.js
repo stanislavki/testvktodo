@@ -10,10 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Если вообще ничего живого не нашли — отправляем на авторизацию
-    else (!userId || userId === 'undefined' || userId === 'null') {
+    else if(!userId || userId === 'undefined' || userId === 'null') {
         console.error('Критическая ошибка: ID пользователя не найден в localStorage или равен undefined.');
         alert('Сессия устарела или не зафиксирована. Пожалуйста, войдите снова на главной странице.');
         window.location.href = 'index.html';
+        return;
     }
 
     console.log('Страница создания семьи готова. Используем user_id:', userId);
