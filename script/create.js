@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Если вообще ничего живого не нашли — отправляем на авторизацию
-    {
         else if (!userId || userId === 'undefined' || userId === 'null') {
         console.error('Критическая ошибка: ID пользователя не найден в localStorage или равен undefined.');
         alert('Сессия устарела или не зафиксирована. Пожалуйста, войдите снова на главной странице.');
