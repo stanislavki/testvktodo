@@ -44,14 +44,14 @@ vkMainBtn.addEventListener('click', async () => {
                 const familyId = getField(famData, 'family_id');
                 localStorage.setItem('family_id', familyId);
                 console.log('Семья найдена. Перенаправление на tasks.html');
-                window.location.href = 'tasks.html';
+                window.location.href = 'tasks.html' + window.location.search;
             } else {
                 console.log('Семья не найдена. Перенаправление на choose.html');
-                window.location.href = 'choose.html';
+                window.location.href = 'choose.html' + window.location.search;
             }
         } catch (famErr) {
             console.warn('Не удалось проверить семью, переход на choose.html', famErr);
-            window.location.href = 'choose.html';
+            window.location.href = 'choose.html' + window.location.search';
         }
 
     } catch (error) {
