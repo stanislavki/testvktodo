@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = 'index.html';
         return;
     }
-    currentUserId = parseInt(storedId); // Внутренний ID оставляем для фильтрации "Мои задачи"
+    currentUserId = parseInt(storedId); // Внутренний ID оставляем для фильтрации "Мои задачи" и запросов к БД
     
     // Логика вывода названия семьи на экран
     const familyTitle = document.getElementById('family-title');
@@ -35,9 +35,8 @@ async function loadTasks() {
     container.innerHTML = '<div style="color:white; text-align:center; padding:20px;">Загрузка задач...</div>';
 
     try {
-        // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Отправляем vk_id, который ждет бэкенд!
-        const storedVk = localStorage.getItem('vk_id');
-        const res = await fetch(`${API_URL}/task/get_family_tasks?user_id=${storedVk}`);
+        // 🔥 ИСПРАВЛЕНИЕ: Отправляем внутренний currentUserId, так как задачи привязаны к нему!
+        const res = await fetch(`${API_URL}/task/get_family_tasks?user_id=${currentUserId}`);
         const data = await res.json();
 
         if (data.status?.startsWith('ERR')) {
