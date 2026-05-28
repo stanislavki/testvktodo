@@ -7,23 +7,21 @@ let currentTab = 'my';
 document.addEventListener('DOMContentLoaded', async () => {
     const storedId = localStorage.getItem('user_id');
     const storedVk = localStorage.getItem('vk_id');
-    // 🔥 Достаем НАЗВАНИЕ семьи из памяти браузера вместо инвайт-кода
+    // Достаем НАЗВАНИЕ семьи из памяти браузера вместо инвайт-кода
     const familyName = localStorage.getItem('family_name'); 
     
     if (!storedId || !storedVk) {
         window.location.href = 'index.html';
         return;
     }
-    currentUserId = parseInt(storedId); // Здесь остается внутренний ID, это нормально для задач
+    currentUserId = parseInt(storedId); // Внутренний ID оставляем для фильтрации "Мои задачи"
     
-    // 🔥 Логика вывода названия семьи на экран
+    // Логика вывода названия семьи на экран
     const familyTitle = document.getElementById('family-title');
     if (familyTitle) {
         if (familyName && familyName !== 'undefined' && familyName !== 'null') {
-            // Если название найдено, выводим его
             familyTitle.textContent = familyName;
         } else {
-            // Заглушка, если названия вдруг нет
             familyTitle.textContent = `СЕМЬЯ`;
         }
     }
@@ -37,7 +35,9 @@ async function loadTasks() {
     container.innerHTML = '<div style="color:white; text-align:center; padding:20px;">Загрузка задач...</div>';
 
     try {
-        const res = await fetch(`${API_URL}/task/get_family_tasks?user_id=${currentUserId}`);
+        // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Отправляем vk_id, который ждет бэкенд!
+        const storedVk = localStorage.getItem('vk_id');
+        const res = await fetch(`${API_URL}/task/get_family_tasks?user_id=${storedVk}`);
         const data = await res.json();
 
         if (data.status?.startsWith('ERR')) {
