@@ -7,21 +7,23 @@ let currentTab = 'my';
 document.addEventListener('DOMContentLoaded', async () => {
     const storedId = localStorage.getItem('user_id');
     const storedVk = localStorage.getItem('vk_id');
-    const inviteCode = localStorage.getItem('invite_code'); // Достаем код из памяти браузера
+    // 🔥 Достаем НАЗВАНИЕ семьи из памяти браузера вместо инвайт-кода
+    const familyName = localStorage.getItem('family_name'); 
     
     if (!storedId || !storedVk) {
         window.location.href = 'index.html';
         return;
     }
-    currentUserId = parseInt(storedId);
+    currentUserId = parseInt(storedId); // Здесь остается внутренний ID, это нормально для задач
     
-    // 🔥 Логика вывода кода семьи на экран
+    // 🔥 Логика вывода названия семьи на экран
     const familyTitle = document.getElementById('family-title');
     if (familyTitle) {
-        if (inviteCode) {
-            // Если код найден, красиво выводим его вместо "СЕМЬЯ ..."
-            familyTitle.textContent = `КОД СЕМЬИ: ${inviteCode}`;
+        if (familyName && familyName !== 'undefined' && familyName !== 'null') {
+            // Если название найдено, выводим его
+            familyTitle.textContent = familyName;
         } else {
+            // Заглушка, если названия вдруг нет
             familyTitle.textContent = `СЕМЬЯ`;
         }
     }
