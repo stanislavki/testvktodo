@@ -20,7 +20,6 @@
     <main class="main">
       <div class="settings-container">
         <div class="settings-fields">
-          <!-- УВЕДОМЛЕНИЯ -->
           <div class="settings-field">
             <div class="settings-field-label">Уведомления</div>
             <button type="button" class="settings-toggle-btn" id="notifBtn" onclick="toggleNotifications()">
@@ -28,20 +27,18 @@
             </button>
           </div>
 
-          <!-- КОД СЕМЬИ -->
           <div class="settings-field">
             <div class="settings-field-label">Код семьи</div>
             <div id="invite-code" class="settings-field-value">Загрузка...</div>
           </div>
 
-          <!-- РОЛЬ В СЕМЬЕ -->
           <div class="settings-field">
             <div class="settings-field-label">Роль в семье</div>
             <div class="settings-field-value">Ребёнок</div>
           </div>
         </div>
 
-        <button class="logout-btn" onclick="location.href='index.html'">Выйти из аккаунта</button>
+        <button class="logout-btn">Выйти из аккаунта</button>
       </div>
     </main>
 
@@ -54,8 +51,10 @@
   </div>
 
   <script>
+    const API_URL = 'https://todo-stasnau.amvera.io';
     let notificationsEnabled = true;
 
+    // Переключение иконки уведомлений
     function toggleNotifications() {
       notificationsEnabled = !notificationsEnabled;
       const icon = document.getElementById('notifIcon');
@@ -64,10 +63,61 @@
         icon.alt = 'уведомления включены';
       } else {
         icon.src = 'img/bell_off.svg';
-        icon.alt = 'уведомления отключены';
+        icon.alt = 'уведомления выключены';
       }
     }
+
+    // Отображение инвайт-кода при загрузке страницы
+    document.addEventListener('DOMContentLoaded', async () => {
+      const codeField = document.getElementById('invite-code');
+      if (!codeField) return;
+
+      // 1. Сначала проверяем, есть ли код в памяти браузера
+      let cachedCode = localStorage.getItem('invite_code');
+      
+      if (cachedCode && cachedCode !== 'undefined' && cachedCode !== 'null' && cachedCode.trim() !== '') {
+        codeField.textContent = cachedCode;
+        return;
+      }
+
+      // 2. Если в памяти пусто, подстраховываемся запросом к бэкенду
+      const vkId = localStorage.getItem('vk_id');
+      if (vkId) {
+        try {
+          const res = await fetch(`${API_URL}/user/load_user_family?vk_id=${vkId}`);
+          const data = await res.json();
+          
+          if (data.status === 'family_found') {
+            const code = data.invite_code || data.code;
+            if (code) {
+              const finalCode = String(code).trim();
+              codeField.textContent = finalCode;
+              localStorage.setItem('invite_code', finalCode);
+              if (data.family_id) localStorage.setItem('family_id', data.family_id);
+              return;
+            }
+          }
+        } catch (e) {
+          console.error('Ошибка при динамической загрузке кода:', e);
+        }
+      }
+
+      // 3. Если пользователь вообще не состоит в семье
+      codeField.textContent = 'Не состоит в семье';
+      codeField.style.color = '#ff6b6b';
+    });
+
+    // Очистка сессии локального хранилища при выходе из аккаунта
+    document.addEventListener('DOMContentLoaded', () => {
+      const logoutBtn = document.querySelector('.logout-btn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          localStorage.clear(); // Полностью вычищаем кэш ID перед выходом, чтобы избежать багов авторизации
+          window.location.href = 'index.html';
+        });
+      }
+    });
   </script>
-  <script src="script/display.js"></script>
 </body>
 </html>
