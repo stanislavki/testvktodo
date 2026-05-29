@@ -3,20 +3,19 @@ let allTasks = [];
 let currentUserId = null;
 let currentTab = 'my';
 
-// Инициализация страницы
 document.addEventListener('DOMContentLoaded', async () => {
     const storedId = localStorage.getItem('user_id');
     const storedVk = localStorage.getItem('vk_id');
-    // Достаем НАЗВАНИЕ семьи из памяти браузера вместо инвайт-кода
     const familyName = localStorage.getItem('family_name'); 
     
     if (!storedId || !storedVk) {
         window.location.href = 'index.html';
         return;
     }
-    currentUserId = parseInt(storedId); // Внутренний ID оставляем для фильтрации "Мои задачи" и запросов к БД
     
-    // Логика вывода названия семьи на экран
+    // Для фильтрации задач нужен внутренний ID
+    currentUserId = parseInt(storedId); 
+    
     const familyTitle = document.getElementById('family-title');
     if (familyTitle) {
         if (familyName && familyName !== 'undefined' && familyName !== 'null') {
@@ -29,13 +28,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadTasks();
 });
 
-// Загрузка задач (1 запрос -> готовые данные)
 async function loadTasks() {
     const container = document.getElementById('tasks-container');
     container.innerHTML = '<div style="color:white; text-align:center; padding:20px;">Загрузка задач...</div>';
 
     try {
-        // 🔥 ИСПРАВЛЕНИЕ: Отправляем внутренний currentUserId, так как задачи привязаны к нему!
+        // Отправляем внутренний ID для поиска задач в БД
         const res = await fetch(`${API_URL}/task/get_family_tasks?user_id=${currentUserId}`);
         const data = await res.json();
 
@@ -52,7 +50,6 @@ async function loadTasks() {
     }
 }
 
-// Переключение табов
 function switchTab(tab) {
     currentTab = tab;
     document.getElementById('tab-my').className = tab === 'my' ? 'tab-btn active' : 'tab-btn';
@@ -60,12 +57,10 @@ function switchTab(tab) {
     renderTasks();
 }
 
-// Отрисовка карточек
 function renderTasks() {
     const container = document.getElementById('tasks-container');
     container.innerHTML = '';
 
-    // Фильтрация по табу
     const filtered = currentTab === 'my' 
         ? allTasks.filter(t => t.assigned_to_id === currentUserId)
         : allTasks;
@@ -93,7 +88,6 @@ function renderTasks() {
     });
 }
 
-// Удаление задачи по чекбоксу
 function handleDelete(event, taskId) {
     event.stopPropagation();
     if (!confirm('Удалить эту задачу?')) {
@@ -109,7 +103,6 @@ function handleDelete(event, taskId) {
         .catch(() => alert('Ошибка при удалении'));
 }
 
-// Защита от XSS при выводе текста
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
