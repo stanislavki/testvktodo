@@ -50,7 +50,7 @@
 
   </div>
 
-  <script>
+<script>
     const API_URL = 'https://todo-stasnau.amvera.io';
     let notificationsEnabled = true;
 
@@ -67,53 +67,74 @@
       }
     }
 
-    // Отображение инвайт-кода при загрузке страницы
+    // Бронебойная загрузка кода семьи
     document.addEventListener('DOMContentLoaded', async () => {
       const codeField = document.getElementById('invite-code');
       if (!codeField) return;
 
-      // 1. Сначала проверяем, есть ли код в памяти браузера
+      // Вспомогательная функция для защиты от строк "undefined" или "null"
+      const isValid = (val) => val && val !== 'undefined' && val !== 'null' && String(val).trim() !== '';
+
+      // 1. Проверяем кэш браузера
       let cachedCode = localStorage.getItem('invite_code');
-      
-      if (cachedCode && cachedCode !== 'undefined' && cachedCode !== 'null' && cachedCode.trim() !== '') {
+      if (isValid(cachedCode)) {
         codeField.textContent = cachedCode;
         return;
       }
 
-      // 2. Если в памяти пусто, подстраховываемся запросом к бэкенду
+      // 2. Если кода в кэше нет, берем ID семьи (он 100% есть, раз работают задачи)
+      const familyId = localStorage.getItem('family_id');
       const vkId = localStorage.getItem('vk_id');
-      if (vkId) {
-        try {
+
+      try {
+        let finalCode = null;
+
+        // ПЛАН А: Запрос параметров семьи по ее ID (самый надежный)
+        if (isValid(familyId)) {
+          const res = await fetch(`${API_URL}/family/get?family_id=${familyId}`);
+          let data = await res.json();
+          
+          // Если бэк отдает массив (как у тебя было в display.js)
+          if (Array.isArray(data)) data = data[0]; 
+          
+          finalCode = data?.invite_code || data?.code;
+        }
+
+        // ПЛАН Б: Резервный запрос через профиль пользователя (если План А не сработал)
+        if (!isValid(finalCode) && isValid(vkId)) {
           const res = await fetch(`${API_URL}/user/load_user_family?vk_id=${vkId}`);
           const data = await res.json();
-          
-          if (data.status === 'family_found') {
-            const code = data.invite_code || data.code;
-            if (code) {
-              const finalCode = String(code).trim();
-              codeField.textContent = finalCode;
-              localStorage.setItem('invite_code', finalCode);
-              if (data.family_id) localStorage.setItem('family_id', data.family_id);
-              return;
-            }
+          if (data?.status === 'family_found') {
+            finalCode = data.invite_code || data.code;
           }
-        } catch (e) {
-          console.error('Ошибка при динамической загрузке кода:', e);
         }
+
+        // 3. Если удалось достать код — выводим и кэшируем навсегда
+        if (isValid(finalCode)) {
+          const cleanCode = String(finalCode).trim();
+          codeField.textContent = cleanCode;
+          codeField.style.color = 'white'; // Возвращаем белый цвет тексту
+          localStorage.setItem('invite_code', cleanCode);
+          return;
+        }
+
+      } catch (e) {
+        console.error('Ошибка при запросе кода с бэкенда:', e);
       }
 
-      // 3. Если пользователь вообще не состоит в семье
-      codeField.textContent = 'Не состоит в семье';
+      // 4. Если бэкенд так и не отдал код
+      codeField.textContent = 'Код не найден на сервере';
       codeField.style.color = '#ff6b6b';
     });
 
-    // Очистка сессии локального хранилища при выходе из аккаунта
+    // Очистка сессии при выходе из аккаунта
     document.addEventListener('DOMContentLoaded', () => {
       const logoutBtn = document.querySelector('.logout-btn');
       if (logoutBtn) {
+        logoutBtn.removeAttribute('onclick'); // Убираем старый атрибут, если он есть
         logoutBtn.addEventListener('click', (e) => {
           e.preventDefault();
-          localStorage.clear(); // Полностью вычищаем кэш ID перед выходом, чтобы избежать багов авторизации
+          localStorage.clear(); // Полностью сбрасываем кэш, чтобы не путать ID
           window.location.href = 'index.html';
         });
       }
