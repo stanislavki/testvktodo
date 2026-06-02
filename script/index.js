@@ -66,6 +66,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         if (famStatus === 'family_found') {
                             localStorage.setItem('family_id', getField(famData, 'family_id'));
+                            
+                            // 🔥 ДОБАВЛЕНО: Сохраняем имя семьи в кэш
+                            if (famData.family_name) {
+                                localStorage.setItem('family_name', famData.family_name);
+                            }
+
                             const code = famData.invite_code || famData.code || getField(famData, 'invite_code') || famData.invite_key;
                             if (code) {
                                 localStorage.setItem('invite_code', String(code).trim());
@@ -123,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 // Проверка пароля разработчика
                 const passRes = await fetch(`${API_URL}/check-password`, {
-                    document: 'POST', // обрати внимание, в твоем коде тут было написано document вместо method, оставил структуру, но если бэк упадет — поменяй на method: 'POST'
+                    document: 'POST', 
                     method: 'POST', 
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ password })
@@ -152,6 +158,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (famStatus === 'family_found') {
                         localStorage.setItem('family_id', getField(famData, 'family_id'));
+                        
+                        // 🔥 ДОБАВЛЕНО: Сохраняем имя семьи в кэш
+                        if (famData.family_name) {
+                            localStorage.setItem('family_name', famData.family_name);
+                        }
+
                         const code = famData.invite_code || famData.code || getField(famData, 'invite_code');
                         if (code) {
                             localStorage.setItem('invite_code', String(code).trim());
