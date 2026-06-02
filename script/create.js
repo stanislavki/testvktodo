@@ -1,10 +1,10 @@
 const API_URL = 'https://todo-stasnau.amvera.io';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Берём ИМЕННО vk_id, как того требует бэкенд
-    const vkId = localStorage.getItem('vk_id');
+    // 🔥 ИСПРАВЛЕНО: Берем внутренний user_id
+    const userId = localStorage.getItem('user_id'); 
     
-    if (!vkId) {
+    if (!userId) {
         window.location.href = 'index.html';
         return;
     }
@@ -22,8 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // Отправляем vk_id под параметром user_id (как указано в твоем роутере)
-            const res = await fetch(`${API_URL}/family/create?name=${encodeURIComponent(name)}&user_id=${vkId}`, {
+            // 🔥 ИСПРАВЛЕНО: Отправляем внутренний userId
+            const res = await fetch(`${API_URL}/family/create?name=${encodeURIComponent(name)}&user_id=${userId}`, {
                 method: 'POST'
             });
             const data = await res.json();
