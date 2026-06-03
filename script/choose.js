@@ -36,7 +36,7 @@ async function checkFamilyStatus(vk_id) {
         if (data.status === 'family_found') {
             localStorage.setItem('family_id', data.family_id);
             
-            // 🔥 ДОБАВЛЕНО: Сохраняем имя семьи в кэш
+            // ДОБАВЛЕНО: Сохраняем имя семьи в кэш
             if (data.family_name) {
                 localStorage.setItem('family_name', data.family_name);
             }
