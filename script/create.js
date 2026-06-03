@@ -1,7 +1,7 @@
 const API_URL = 'https://todo-stasnau.amvera.io';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 🔥 ИСПРАВЛЕНО: Берем внутренний user_id
+    // ИСПРАВЛЕНО: Берем внутренний user_id
     const userId = localStorage.getItem('user_id'); 
     
     if (!userId) {
@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // 🔥 ИСПРАВЛЕНО: Отправляем внутренний userId
+            // ИСПРАВЛЕНО: Отправляем внутренний userId
             const res = await fetch(`${API_URL}/family/create?name=${encodeURIComponent(name)}&user_id=${userId}`, {
                 method: 'POST'
             });
